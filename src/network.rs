@@ -18,7 +18,7 @@ pub struct CoreNetworkBehaviour {
 }
 
 impl NetworkBehaviourEventProcess<()> for CoreNetworkBehaviour {
-    fn inject_event(&mut self, event: ()) {}
+    fn inject_event(&mut self, _event: ()) {}
 }
 
 impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {

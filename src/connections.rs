@@ -1,19 +1,16 @@
-use super::error::Result;
 use libp2p::{
     core::connection::{ConnectedPoint, ConnectionId},
-    mdns::{Mdns, MdnsEvent},
     swarm::protocols_handler::DummyProtocolsHandler,
     swarm::DialPeerCondition,
     swarm::{NetworkBehaviour, NetworkBehaviourAction, PollParameters, ProtocolsHandler},
     Multiaddr, PeerId,
 };
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
-use std::{collections::HashSet, time::Duration};
 
 pub struct Connections {
     new_peers: Arc<Mutex<Vec<PeerId>>>,
-    remove_peers: Arc<Mutex<Vec<PeerId>>>,
     peers: HashSet<PeerId>,
 }
 
@@ -22,7 +19,6 @@ impl Connections {
         Self {
             peers: HashSet::new(),
             new_peers: Arc::new(Mutex::new(vec![])),
-            remove_peers: Arc::new(Mutex::new(vec![])),
         }
     }
 
@@ -33,18 +29,6 @@ impl Connections {
         self.peers.insert(peer.clone());
         if let Ok(mut new_peers_ref) = self.new_peers.lock() {
             new_peers_ref.push(peer);
-        } else {
-            log::error!("Poisoned mutex in Connections");
-        }
-    }
-
-    pub fn remove_peer(&mut self, peer: PeerId) {
-        if !self.peers.contains(&peer) {
-            return;
-        }
-        self.peers.remove(&peer);
-        if let Ok(mut remove_peers_ref) = self.remove_peers.lock() {
-            remove_peers_ref.push(peer);
         } else {
             log::error!("Poisoned mutex in Connections");
         }
