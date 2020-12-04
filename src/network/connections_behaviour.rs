@@ -18,6 +18,7 @@ pub struct ConnectionsBehaviour {
 }
 
 impl ConnectionsBehaviour {
+    /// Create new behaviour
     pub fn new() -> Self {
         Self {
             peers: HashSet::new(),

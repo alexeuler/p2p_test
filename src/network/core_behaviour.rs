@@ -1,3 +1,5 @@
+//! Contains core network behaviour that combines all other behaviours
+
 use super::connections_behaviour::ConnectionsBehaviour;
 use crate::error::Result;
 use libp2p::{
@@ -8,13 +10,12 @@ use libp2p::{
 };
 use std::{collections::HashSet, time::Duration};
 
+/// The main behaviour combining all other behaviours.
 #[derive(NetworkBehaviour)]
 pub struct CoreNetworkBehaviour {
-    pub mdns: Mdns,
-    pub ping: Ping,
-    pub connections: ConnectionsBehaviour,
-    #[behaviour(ignore)]
-    peers: HashSet<PeerId>,
+    mdns: Mdns,
+    ping: Ping,
+    connections: ConnectionsBehaviour,
 }
 
 impl NetworkBehaviourEventProcess<()> for CoreNetworkBehaviour {
@@ -29,14 +30,12 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
                     log::debug!("Discovered peer: {:?}", peer_id);
                     self.connections.insert_peer(peer_id);
                 }
-                log::debug!("Updated peer set: {:?}", self.peers)
             }
             MdnsEvent::Expired(list) => {
                 for (peer_id, _) in list {
+                    // Don't do anything here because ping will drop expired connection
                     log::debug!("Expired peer: {:?}", peer_id);
-                    self.peers.remove(&peer_id);
                 }
-                log::debug!("Updated peer set: {:?}", self.peers)
             }
         }
     }
@@ -55,18 +54,18 @@ impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
 }
 
 impl CoreNetworkBehaviour {
-    pub fn new(duration: Duration) -> Result<Self> {
+    /// Create a new network behavior with `ping` interval
+    pub fn new(interval: Duration) -> Result<Self> {
         let mdns = Mdns::new()?;
         let ping = Ping::new(
             PingConfig::new()
-                .with_interval(duration)
+                .with_interval(interval)
                 .with_keep_alive(true),
         );
         Ok(Self {
             mdns,
             ping,
             connections: ConnectionsBehaviour::new(),
-            peers: HashSet::new(),
         })
     }
 }

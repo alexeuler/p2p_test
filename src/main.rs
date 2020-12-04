@@ -1,4 +1,5 @@
 //! P2P pinging network. First command line argument specifies ping interval.
+//!
 //! E.g. `RUST_LOG=info cargo run -- 5` will ping all other peers every 5 seconds.
 //! The default interval is 10 secs.
 

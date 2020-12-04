@@ -1,6 +1,7 @@
 //! Global error module
 use derive_more::{Display, From};
 
+/// Result type with global error built in
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Global error type

@@ -1,3 +1,5 @@
+//! Module for starting and managing p2p network layer.
+
 mod connections_behaviour;
 mod core_behaviour;
 
@@ -25,6 +27,7 @@ pub async fn start_network(interval_secs: u64) -> Result<()> {
     Ok(())
 }
 
+/// Generate libp2p keypair and derive peer_id
 fn generate_secret() -> (Keypair, PeerId) {
     let keypair = Keypair::generate();
     let public_key = PublicKey::Secp256k1(keypair.public().clone());
