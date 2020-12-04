@@ -10,7 +10,6 @@ use std::{collections::HashSet, time::Duration};
 #[derive(NetworkBehaviour)]
 pub struct CoreNetworkBehaviour {
     pub mdns: Mdns,
-    pub ping: Ping,
     #[behaviour(ignore)]
     peers: HashSet<PeerId>,
 }
@@ -36,19 +35,11 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
     }
 }
 
-impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
-    fn inject_event(&mut self, event: PingEvent) {
-        log::info!("Got ping event");
-    }
-}
-
 impl CoreNetworkBehaviour {
     pub fn new(duration: Duration) -> Result<Self> {
         let mdns = Mdns::new()?;
-        let ping = Ping::new(PingConfig::new().with_interval(duration));
         Ok(Self {
             mdns,
-            ping,
             peers: HashSet::new(),
         })
     }
