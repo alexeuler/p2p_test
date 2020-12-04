@@ -21,7 +21,7 @@ async fn start_network() -> Result<()> {
     let (keypair, peer_id) = generate_secret();
     let libp2p_keypair = libp2p::identity::Keypair::Secp256k1(keypair);
     let transport = libp2p::build_development_transport(libp2p_keypair)?;
-    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(1))?;
+    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(10))?;
 
     let mut swarm = Swarm::new(transport, behaviour, peer_id);
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;

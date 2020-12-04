@@ -44,7 +44,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
 
 impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
     fn inject_event(&mut self, event: PingEvent) {
-        log::info!("Received ping event");
+        log::info!("Received event: {:?}", event);
     }
 }
 
