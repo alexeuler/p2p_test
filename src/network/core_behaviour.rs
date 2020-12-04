@@ -6,9 +6,9 @@ use libp2p::{
     mdns::{Mdns, MdnsEvent},
     ping::{Ping, PingConfig, PingEvent},
     swarm::NetworkBehaviourEventProcess,
-    NetworkBehaviour, PeerId,
+    NetworkBehaviour,
 };
-use std::{collections::HashSet, time::Duration};
+use std::time::Duration;
 
 /// The main behaviour combining all other behaviours.
 #[derive(NetworkBehaviour)]
