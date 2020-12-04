@@ -1,3 +1,4 @@
+use super::connections::Connections;
 use super::error::Result;
 use libp2p::{
     mdns::{Mdns, MdnsEvent},
@@ -10,8 +11,14 @@ use std::{collections::HashSet, time::Duration};
 #[derive(NetworkBehaviour)]
 pub struct CoreNetworkBehaviour {
     pub mdns: Mdns,
+    pub ping: Ping,
+    pub connections: Connections,
     #[behaviour(ignore)]
     peers: HashSet<PeerId>,
+}
+
+impl NetworkBehaviourEventProcess<()> for CoreNetworkBehaviour {
+    fn inject_event(&mut self, event: ()) {}
 }
 
 impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
@@ -20,7 +27,7 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
             MdnsEvent::Discovered(list) => {
                 for (peer_id, _) in list {
                     log::debug!("Discovered peer: {:?}", peer_id);
-                    self.peers.insert(peer_id);
+                    self.connections.insert_peer(peer_id);
                 }
                 log::debug!("Updated peer set: {:?}", self.peers)
             }
@@ -35,11 +42,24 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
     }
 }
 
+impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
+    fn inject_event(&mut self, event: PingEvent) {
+        log::info!("Received ping event");
+    }
+}
+
 impl CoreNetworkBehaviour {
     pub fn new(duration: Duration) -> Result<Self> {
         let mdns = Mdns::new()?;
+        let ping = Ping::new(
+            PingConfig::new()
+                .with_interval(duration)
+                .with_keep_alive(true),
+        );
         Ok(Self {
             mdns,
+            ping,
+            connections: Connections::new(),
             peers: HashSet::new(),
         })
     }

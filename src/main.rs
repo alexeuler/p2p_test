@@ -1,6 +1,6 @@
+mod connections;
 mod error;
 mod network;
-mod ping;
 
 use error::Result;
 use futures::stream::StreamExt;
