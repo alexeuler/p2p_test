@@ -82,7 +82,7 @@ impl NetworkBehaviour for Connections {
     fn poll(
         &mut self,
         _: &mut Context<'_>,
-        _: &mut impl PollParameters,
+        params: &mut impl PollParameters,
     ) -> Poll<
         NetworkBehaviourAction<
             <Self::ProtocolsHandler as ProtocolsHandler>::InEvent,
@@ -91,11 +91,18 @@ impl NetworkBehaviour for Connections {
     > {
         if let Ok(mut new_peers_ref) = self.new_peers.lock() {
             if let Some(peer_id) = new_peers_ref.pop() {
-                log::debug!("Connecting peer {:?}", peer_id);
-                return Poll::Ready(NetworkBehaviourAction::DialPeer {
-                    peer_id,
-                    condition: DialPeerCondition::Disconnected,
-                });
+                let self_peer_id = params.local_peer_id();
+                // Avoid duplex connections
+                if self_peer_id < &peer_id {
+                    log::debug!("Connecting peer {:?}", peer_id);
+                    return Poll::Ready(NetworkBehaviourAction::DialPeer {
+                        peer_id,
+                        condition: DialPeerCondition::Disconnected,
+                    });
+                } else {
+                    log::debug!("Waiting for connection from peer {:?}", peer_id);
+                    return Poll::Pending;
+                }
             }
         } else {
             log::error!("Poisoned mutex in Connections");

@@ -44,7 +44,13 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
 
 impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
     fn inject_event(&mut self, event: PingEvent) {
-        log::info!("Received event: {:?}", event);
+        match event.result {
+            Ok(libp2p::ping::PingSuccess::Ping { rtt }) => {
+                log::info!("Ping returned from {} with rtt {:?}", event.peer, rtt)
+            }
+            Ok(libp2p::ping::PingSuccess::Pong) => log::info!("Sent Pong to {}", event.peer),
+            Err(e) => log::error!("{}", e),
+        };
     }
 }
 

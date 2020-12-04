@@ -12,16 +12,27 @@ use std::time::Duration;
 #[async_std::main]
 async fn main() -> Result<()> {
     env_logger::init();
-    start_network().await?;
+    let interval_secs = if let Some(interval_str) = std::env::args().nth(1) {
+        if let Ok(interval) = interval_str.parse() {
+            interval
+        } else {
+            log::warn!("Failed to parse interval, applying 10 secs");
+            10
+        }
+    } else {
+        10
+    };
+    start_network(interval_secs).await?;
     Ok(())
 }
 
-async fn start_network() -> Result<()> {
+async fn start_network(interval_secs: u64) -> Result<()> {
     log::info!("Starting p2p network");
     let (keypair, peer_id) = generate_secret();
     let libp2p_keypair = libp2p::identity::Keypair::Secp256k1(keypair);
     let transport = libp2p::build_development_transport(libp2p_keypair)?;
-    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(10))?;
+
+    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(interval_secs))?;
 
     let mut swarm = Swarm::new(transport, behaviour, peer_id);
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;
