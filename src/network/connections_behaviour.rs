@@ -1,3 +1,5 @@
+//! Contains network behavior for establishing connections with newly discovered peers
+
 use libp2p::{
     core::connection::{ConnectedPoint, ConnectionId},
     swarm::protocols_handler::DummyProtocolsHandler,
@@ -9,12 +11,13 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-pub struct Connections {
+/// Network behaviour for adding new connections
+pub struct ConnectionsBehaviour {
     new_peers: Arc<Mutex<Vec<PeerId>>>,
     peers: HashSet<PeerId>,
 }
 
-impl Connections {
+impl ConnectionsBehaviour {
     pub fn new() -> Self {
         Self {
             peers: HashSet::new(),
@@ -22,6 +25,8 @@ impl Connections {
         }
     }
 
+    /// Add peer to connect. The connection will be established
+    /// if added peer id is greater than local id (to avoid duplex connections)
     pub fn insert_peer(&mut self, peer: PeerId) {
         if self.peers.contains(&peer) {
             return;
@@ -30,12 +35,12 @@ impl Connections {
         if let Ok(mut new_peers_ref) = self.new_peers.lock() {
             new_peers_ref.push(peer);
         } else {
-            log::error!("Poisoned mutex in Connections");
+            log::error!("Poisoned mutex in ConnectionsBehaviour");
         }
     }
 }
 
-impl NetworkBehaviour for Connections {
+impl NetworkBehaviour for ConnectionsBehaviour {
     type ProtocolsHandler = DummyProtocolsHandler;
     type OutEvent = ();
 
@@ -89,7 +94,7 @@ impl NetworkBehaviour for Connections {
                 }
             }
         } else {
-            log::error!("Poisoned mutex in Connections");
+            log::error!("Poisoned mutex in ConnectionsBehaviour");
         }
         Poll::Pending
     }

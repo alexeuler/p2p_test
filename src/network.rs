@@ -1,72 +1,33 @@
-use super::connections::Connections;
+mod connections_behaviour;
+mod core_behaviour;
+
 use super::error::Result;
-use libp2p::{
-    mdns::{Mdns, MdnsEvent},
-    ping::{Ping, PingConfig, PingEvent},
-    swarm::NetworkBehaviourEventProcess,
-    NetworkBehaviour, PeerId,
-};
-use std::{collections::HashSet, time::Duration};
+use core_behaviour::CoreNetworkBehaviour;
+use futures::stream::StreamExt;
+use libp2p::identity::{secp256k1::Keypair, PublicKey};
+use libp2p::{PeerId, Swarm};
+use std::time::Duration;
 
-#[derive(NetworkBehaviour)]
-pub struct CoreNetworkBehaviour {
-    pub mdns: Mdns,
-    pub ping: Ping,
-    pub connections: Connections,
-    #[behaviour(ignore)]
-    peers: HashSet<PeerId>,
+/// Start network
+pub async fn start_network(interval_secs: u64) -> Result<()> {
+    log::info!("Starting p2p network");
+    let (keypair, peer_id) = generate_secret();
+    let libp2p_keypair = libp2p::identity::Keypair::Secp256k1(keypair);
+    let transport = libp2p::build_development_transport(libp2p_keypair)?;
+
+    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(interval_secs))?;
+
+    let mut swarm = Swarm::new(transport, behaviour, peer_id);
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;
+    let swarm = swarm.for_each(|_ev| futures::future::ready(()));
+    log::info!("Network started");
+    swarm.await;
+    Ok(())
 }
 
-impl NetworkBehaviourEventProcess<()> for CoreNetworkBehaviour {
-    fn inject_event(&mut self, _event: ()) {}
-}
-
-impl NetworkBehaviourEventProcess<MdnsEvent> for CoreNetworkBehaviour {
-    fn inject_event(&mut self, event: MdnsEvent) {
-        match event {
-            MdnsEvent::Discovered(list) => {
-                for (peer_id, _) in list {
-                    log::debug!("Discovered peer: {:?}", peer_id);
-                    self.connections.insert_peer(peer_id);
-                }
-                log::debug!("Updated peer set: {:?}", self.peers)
-            }
-            MdnsEvent::Expired(list) => {
-                for (peer_id, _) in list {
-                    log::debug!("Expired peer: {:?}", peer_id);
-                    self.peers.remove(&peer_id);
-                }
-                log::debug!("Updated peer set: {:?}", self.peers)
-            }
-        }
-    }
-}
-
-impl NetworkBehaviourEventProcess<PingEvent> for CoreNetworkBehaviour {
-    fn inject_event(&mut self, event: PingEvent) {
-        match event.result {
-            Ok(libp2p::ping::PingSuccess::Ping { rtt }) => {
-                log::info!("Ping returned from {} with rtt {:?}", event.peer, rtt)
-            }
-            Ok(libp2p::ping::PingSuccess::Pong) => log::info!("Sent Pong to {}", event.peer),
-            Err(e) => log::error!("{}", e),
-        };
-    }
-}
-
-impl CoreNetworkBehaviour {
-    pub fn new(duration: Duration) -> Result<Self> {
-        let mdns = Mdns::new()?;
-        let ping = Ping::new(
-            PingConfig::new()
-                .with_interval(duration)
-                .with_keep_alive(true),
-        );
-        Ok(Self {
-            mdns,
-            ping,
-            connections: Connections::new(),
-            peers: HashSet::new(),
-        })
-    }
+fn generate_secret() -> (Keypair, PeerId) {
+    let keypair = Keypair::generate();
+    let public_key = PublicKey::Secp256k1(keypair.public().clone());
+    let peer_id = PeerId::from_public_key(public_key);
+    (keypair, peer_id)
 }

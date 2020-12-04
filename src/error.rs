@@ -6,12 +6,16 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Global error type
 #[derive(Debug, Display, From)]
 pub enum Error {
+    /// Libp2p transport error
     #[display(fmt = "Transport Io error: {}", _0)]
     TransportIo(libp2p::TransportError<std::io::Error>),
+    /// Network address error
     #[display(fmt = "Address parse error: {}", _0)]
     Addr(libp2p::core::multiaddr::Error),
+    /// Generic Io error
     #[display(fmt = "Io error: {}", _0)]
     Io(std::io::Error),
+    /// Generic error
     #[display(fmt = "{}", _0)]
     Msg(String),
 }

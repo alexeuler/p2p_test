@@ -1,13 +1,12 @@
-mod connections;
+//! P2P pinging network. First command line argument specifies ping interval.
+//! E.g. `RUST_LOG=info cargo run -- 5` will ping all other peers every 5 seconds.
+//! The default interval is 10 secs.
+
 mod error;
 mod network;
 
 use error::Result;
-use futures::stream::StreamExt;
-use libp2p::identity::{secp256k1::Keypair, PublicKey};
-use libp2p::{PeerId, Swarm};
-use network::CoreNetworkBehaviour;
-use std::time::Duration;
+use network::start_network;
 
 #[async_std::main]
 async fn main() -> Result<()> {
@@ -24,27 +23,4 @@ async fn main() -> Result<()> {
     };
     start_network(interval_secs).await?;
     Ok(())
-}
-
-async fn start_network(interval_secs: u64) -> Result<()> {
-    log::info!("Starting p2p network");
-    let (keypair, peer_id) = generate_secret();
-    let libp2p_keypair = libp2p::identity::Keypair::Secp256k1(keypair);
-    let transport = libp2p::build_development_transport(libp2p_keypair)?;
-
-    let behaviour = CoreNetworkBehaviour::new(Duration::from_secs(interval_secs))?;
-
-    let mut swarm = Swarm::new(transport, behaviour, peer_id);
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;
-    let swarm = swarm.for_each(|_ev| futures::future::ready(()));
-    log::info!("Network started");
-    swarm.await;
-    Ok(())
-}
-
-pub fn generate_secret() -> (Keypair, PeerId) {
-    let keypair = Keypair::generate();
-    let public_key = PublicKey::Secp256k1(keypair.public().clone());
-    let peer_id = PeerId::from_public_key(public_key);
-    (keypair, peer_id)
 }
