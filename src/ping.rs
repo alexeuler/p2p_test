@@ -5,13 +5,16 @@ use handler::PingHandler;
 use libp2p::{
     core::connection::{ConnectedPoint, ConnectionId},
     mdns::{Mdns, MdnsEvent},
+    swarm::protocols_handler::DummyProtocolsHandler,
     swarm::{NetworkBehaviour, NetworkBehaviourAction, PollParameters, ProtocolsHandler},
     Multiaddr, PeerId,
 };
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::{collections::HashSet, time::Duration};
 
 pub struct Ping {
+    incoming_peers: Arc<Mutex<Vec<PeerId>>>,
     peers: HashSet<PeerId>,
 }
 
@@ -19,16 +22,17 @@ impl Ping {
     pub fn new() -> Self {
         Self {
             peers: HashSet::new(),
+            incoming_peers: Arc::new(Mutex::new(vec![])),
         }
     }
 }
 
 impl NetworkBehaviour for Ping {
-    type ProtocolsHandler = PingHandler;
+    type ProtocolsHandler = DummyProtocolsHandler;
     type OutEvent = ();
 
     fn new_handler(&mut self) -> Self::ProtocolsHandler {
-        PingHandler::default()
+        DummyProtocolsHandler::default()
     }
 
     fn addresses_of_peer(&mut self, _: &PeerId) -> Vec<Multiaddr> {
